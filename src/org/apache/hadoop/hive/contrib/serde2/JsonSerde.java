@@ -14,8 +14,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde.Constants;
-import org.apache.hadoop.hive.serde2.SerDe;
+import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
+import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
@@ -28,7 +29,6 @@ import org.json.JSONObject;
 
 import java.text.ParseException;
 
-import com.jayway.jsonpath.PathUtil;
 import com.jayway.jsonpath.JsonPath;
 
 /**
@@ -87,7 +87,7 @@ import com.jayway.jsonpath.JsonPath;
  *      Google Code</a>
  * @author Peter Sankauskas
  */
-public class JsonSerde implements SerDe {
+public class JsonSerde extends AbstractSerDe {
 	/**
 	 * Apache commons logger
 	 */
@@ -126,8 +126,7 @@ public class JsonSerde implements SerDe {
 	 * 
 	 */
 	@Override
-	public void initialize(Configuration sysProps, Properties tblProps)
-			throws SerDeException {
+	public void initialize(Configuration sysProps, Properties tblProps) throws SerDeException {
 		LOG.debug("Initializing JsonSerde");
 
 		tbl = tblProps;
@@ -181,7 +180,7 @@ public class JsonSerde implements SerDe {
 
 		    LOG.info("Checking JSON path=" + currentJsonPath);
 
-		    if (!PathUtil.isPathDefinite(currentJsonPath)) {
+		    if (!JsonPath.isPathDefinite(currentJsonPath)) {
 			throw new SerDeException("All JSON paths must point to exaclty one item. " +
 						 " The following path is ambiguous: " +
 						 currentJsonPath);
@@ -215,12 +214,22 @@ public class JsonSerde implements SerDe {
 		LOG.debug("JsonSerde initialization complete");
 	}
 
+	@Override
+	public void initialize(Configuration sysProps, Properties tblProps, Properties partitionProps) throws SerDeException {
+		this.initialize(sysProps, tblProps);
+	}
+
 	/**
 	 * Gets the ObjectInspector for a row deserialized by this SerDe
 	 */
 	@Override
 	public ObjectInspector getObjectInspector() throws SerDeException {
 		return rowOI;
+	}
+
+	@Override
+	public SerDeStats getSerDeStats() {
+		return null;
 	}
 
 	/**
@@ -268,12 +277,7 @@ public class JsonSerde implements SerDe {
 		    colPath = colNameJsonPathMap.get(columnNames.get(c));
 		    TypeInfo ti = columnTypes.get(c);
 
-		    try {
 			tmpValue = colPath.read(jsonStr);
-		    } catch (ParseException e) {
-			throw new SerDeException(e.toString());
-		    }
-
 		    if (tmpValue == null) {
 			LOG.warn("No JSON value was found for the JSON path associated with column '" +
 				 columnNames.get(c) + "' or the value was 'null'.");

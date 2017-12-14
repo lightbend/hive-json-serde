@@ -76,7 +76,7 @@ Peter Sankauskas
 			<fileset dir="${dir.build.classes}" excludes="${dir.build.tests}/**" />
 			<zipgroupfileset dir="${dir.lib}" includes="**/*.jar" />
 		</jar>
-		<copyfile dest="${jarfileversioned}" src="${jarfile}" />
+		<copy tofile="${jarfileversioned}" file="${jarfile}" />
 	</target>
 
 	<target name="build.debug">
